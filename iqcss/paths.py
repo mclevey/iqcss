@@ -5,7 +5,9 @@ from pathlib import Path
 # import pandas as pd
 import pyprojroot
 
-root: Path = pyprojroot.find_root(pyprojroot.has_dir(".devcontainer"))
+root: Path = pyprojroot.find_root(pyprojroot.has_dir(".git"))
+
+# or file: pyproject.toml
 
 # # DATASETS
 
