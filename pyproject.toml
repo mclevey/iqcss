@@ -29,7 +29,6 @@ spacy = "*"
 tqdm = "*"
 transformers = "*"
 umap-learn = "*"
-pygraphviz = "^1.14"
 
 
 [build-system]
