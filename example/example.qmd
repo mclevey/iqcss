@@ -3,3 +3,13 @@
 ```{python}
 import iqcss
 ```
+
+# From a Colab Notebook
+
+```python
+!pip install git+https://github.com/mclevey/iqcss.git
+```
+
+```python
+import iqcss
+```
