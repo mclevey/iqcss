@@ -6,6 +6,11 @@ import matplotlib.ticker as ticker
 import numpy as np
 import pandas as pd
 
+def _sort_models_dict(models_dict):
+    sorted_models = sorted(models_dict.items(), key=lambda x: x[1])
+    labels, values = zip(*sorted_models)
+    return sorted_models, labels, values
+
 def plot_line_comparison(
     models_dict,
     xlabel="\nMinimal Description Length (MDL)",

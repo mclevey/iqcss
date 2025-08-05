@@ -569,12 +569,12 @@ def rotate_positions(pos, a):
     return pos.t(lambda x: R @ (x.a - cm) + cm)
 
 
-def _sort_models_dict(models_dict):
-    sorted_models = sorted(models_dict.items(), key=lambda x: x[1])
-    labels, values = zip(*sorted_models)
-    return sorted_models, labels, values
 
 # MOVED TO PLOTTING
+# def _sort_models_dict(models_dict):
+#     sorted_models = sorted(models_dict.items(), key=lambda x: x[1])
+#     labels, values = zip(*sorted_models)
+#     return sorted_models, labels, values
 # def plot_line_comparison(
 #     models_dict,
 #     xlabel="\nMinimal Description Length (MDL)",
