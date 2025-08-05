@@ -155,6 +155,7 @@ def label_topics(
     return df, topic_info, topic_model
 
 
+
 def label_entities(
     model: Any,
     df: pd.DataFrame,
@@ -163,10 +164,10 @@ def label_entities(
     drop_invalid_text: bool = True,
 ) -> Optional[pd.DataFrame]:
     """
-    Label entities in the DataFrame using the provided model.
+    Label entities in the DataFrame using a SpanMarker model.
 
     Args:
-        model (Any): Entity recognition model.
+        model (Any): SpanMarker model instance.
         df (pd.DataFrame): DataFrame containing text data.
         idcol (str): Column name for IDs.
         textcol (str): Column name for text data.
@@ -187,23 +188,18 @@ def label_entities(
     ents: List[pd.DataFrame] = []
     for i, td in tqdm(zip(ids, text), total=len(ids), desc="Labelling entities"):
         try:
-            entities = model.predict(td)
+            results = model.predict([td])
+            entities = results[0]
             if entities:
                 entdf = pd.DataFrame(entities)
                 entdf[textcol] = td
                 entdf[idcol] = i
                 ents.append(entdf)
-        except RuntimeWarning as rw:
-            if "All-NaN slice encountered" in str(rw):
-                logging.warning(f"Skipping NaN slice at ID {i}")
-            else:
-                logging.error(f"Runtime warning for ID {i}: {rw}")
         except Exception as e:
             logging.error(f"Exception for ID {i}: {e}")
 
     if ents:
-        entdf_concat = pd.concat(ents)
-        return entdf_concat
+        return pd.concat(ents, ignore_index=True)
     else:
         logging.info("No valid entities found")
         return None
