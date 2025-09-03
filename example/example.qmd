@@ -4,36 +4,24 @@
 import iqcss
 ```
 
-## Test Data Loaders
-
-### YouTube
+# Test Data Loaders
 
 ```{python}
-from iqcss.data import youtube
+from iqcss.data import wnba, youtube
 ```
+
+## WNBA
+
+```{python}
+wnba = wnba.load('wnba')
+wnba_player_text = wnba.load('wnba_player_text')
+wnba_team_rosters = wnba.load('wnba_team_rosters_2024')
+```
+
+## YouTube
 
 ```{python}
 comments = youtube.load("comments")
-comments.info()
-```
-
-```{python}
 comments_sampled = youtube.load("comments_sampled")
-comments_sampled.info()
 ```
 
-
-
-
-
-
-
-# From a Colab Notebook
-
-```python
-!pip install git+https://github.com/mclevey/iqcss.git
-```
-
-```python
-import iqcss
-```
