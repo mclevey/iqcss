@@ -67,7 +67,9 @@ class WNBADataLoader(DataLoader):
         if not filepath.exists():
             raise FileNotFoundError(f"Data file not found: {filepath}")
 
-        return pd.read_csv(filepath, **kwargs)
+        df = pd.read_csv(filepath, **kwargs)
+        df = df.convert_dtypes()
+        return df
 
     def about(self, dataset_name: Optional[str] = None) -> None:
         """
@@ -150,7 +152,9 @@ class YouTubeDataLoader(DataLoader):
         if not filepath.exists():
             raise FileNotFoundError(f"Data file not found: {filepath}")
 
-        return pd.read_csv(filepath, **kwargs)
+        df = pd.read_csv(filepath, **kwargs)
+        df = df.convert_dtypes()
+        return df
 
     def _load_yearly_comments(self, **kwargs) -> pd.DataFrame:
         """
@@ -221,6 +225,7 @@ class YouTubeDataLoader(DataLoader):
             full_df["published_at"] = pd.to_datetime(full_df["published_at"])
             full_df = full_df.sort_values("published_at").reset_index(drop=True)
 
+        full_df = full_df.convert_dtypes()
         return full_df
 
     def available_datasets(self) -> List[str]:
