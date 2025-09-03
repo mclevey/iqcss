@@ -15,10 +15,3 @@ Package for teaching introductory quantitative and computational social science 
 import iqcss
 ```
 
-
-## Pin install to a specific commit
-
-```python
-%pip install --no-cache-dir --force-reinstall "git+https://github.com/mclevey/iqcss.git@<commit_sha>"
-```
-
