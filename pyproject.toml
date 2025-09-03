@@ -7,28 +7,30 @@ authors = ["John McLevey <mclevey@mun.ca>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-gensim = "^4.3.0" # pinned for colab compatibility
-ipykernel = "6.17.1" # pinned for colab compatibility
-jupyter-client = ">=5.3.4,<8.0" # pinned for colab compatibility
-numpy = ">=1.18.5" # pinned for colab compatibility
-python = ">=3.11,<4.0" # pinned for colab compatibility
-scikit-learn = "^1.5.1" # pinned for colab compatibility
-seaborn = "^0.13.2" # pinned for colab compatibility
 bertopic = "*"
 bs4 = "*"
+gensim = "^4.3.0"
 google-api-python-client = "*"
 hdbscan = "*"
 matplotlib = "*"
+numpy = ">=1.18.5"
 pandas = "*"
+python = ">=3.11,<4.0"
 python-dotenv = "*"
 pyyaml = "*"
 rich = "*"
-scipy = "*"                   
+scikit-learn = "^1.5.1"
+scipy = "*"
+seaborn = "^0.13.2"
 sentence-transformers = "*"
 spacy = "*"
 tqdm = "*"
 transformers = "*"
 umap-learn = "*"
+
+[tool.poetry.group.jupyter.dependencies]
+ipykernel = "*"
+jupyter-client = "*"
 
 [tool.poetry.extras]
 colab = [] 
