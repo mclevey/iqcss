@@ -205,7 +205,7 @@ def label_entities(
 
 
 def label_sentiment(
-    model: str,
+    model_name: str,
     df: pd.DataFrame,
     textcol: str,
     idcol: str,
@@ -216,7 +216,7 @@ def label_sentiment(
     Label sentiment in the DataFrame using the specified model.
 
     Args:
-        model (str): Model name for sentiment analysis.
+        model_name (str): Model name for sentiment analysis.
         df (pd.DataFrame): DataFrame containing text data.
         textcol (str): Column name for text data.
         idcol (str): Column name for IDs.
@@ -229,8 +229,8 @@ def label_sentiment(
     """
     import torch
 
-    tokenizer = AutoTokenizer.from_pretrained(model, max_len=512)
-    model = AutoModelForSequenceClassification.from_pretrained(model)
+    tokenizer = AutoTokenizer.from_pretrained(model_name, max_len=512)
+    model = AutoModelForSequenceClassification.from_pretrained(model_name)
 
     if set_torch_device:
         device = u.set_torch_device()

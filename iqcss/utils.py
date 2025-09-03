@@ -13,8 +13,6 @@ import yaml
 from dotenv import load_dotenv
 from rich.logging import RichHandler
 
-from .paths import root
-
 
 def set_torch_device() -> Any:
     """Set and return the optimal torch device (CUDA, MPS, or CPU).
@@ -44,41 +42,81 @@ def set_torch_device() -> Any:
     return device
 
 
-def load_api_key(key: str, env_path: Path = Path.cwd()) -> Optional[str]:
+def find_env_file(start_path: Path = Path.cwd()) -> Optional[Path]:
+    """Find .env file by searching up the directory tree.
+
+    Args:
+        start_path: Starting directory to search from.
+
+    Returns:
+        Path to .env file if found, None otherwise.
+    """
+    current_path = start_path.resolve()
+
+    # Search up the directory tree
+    while current_path != current_path.parent:  # Stop at filesystem root
+        env_file = current_path / ".env"
+        if env_file.exists():
+            return current_path
+        current_path = current_path.parent
+
+    # Check filesystem root as well
+    env_file = current_path / ".env"
+    if env_file.exists():
+        return current_path
+
+    return None
+
+
+def load_api_key(key: str, env_path: Optional[Path] = None) -> Optional[str]:
     """Load API key from environment file.
 
     Args:
         key: Name of the environment variable.
-        env_path: Path to directory containing .env file.
+        env_path: Path to directory containing .env file. If None, will search
+                 up from current working directory.
 
     Returns:
         API key value or None if not found.
 
     Note:
-        Assumes you have a .env file in the root directory.
-        Should be added to .gitignore, of course.
+        Searches for .env file starting from current directory and moving up
+        the directory tree until found. Should be added to .gitignore.
     """
+    if env_path is None:
+        env_path = find_env_file()
+        if env_path is None:
+            logging.warning("No .env file found in directory tree")
+            return None
+
     load_dotenv(env_path / ".env")
     api_key = os.getenv(key)
     return api_key
 
 
 def load_api_key_list(
-    key_names: List[str], env_path: Path = root
+    key_names: List[str], env_path: Optional[Path] = None
 ) -> List[Optional[str]]:
     """Load multiple API keys from environment file.
 
     Args:
         key_names: List of environment variable names.
-        env_path: Path to directory containing .env file.
+        env_path: Path to directory containing .env file. If None, will search
+                 up from current working directory.
 
     Returns:
         List of API key values (None for keys not found).
 
     Note:
-        Assumes you have a .env file in the root directory with the api keys.
-        Should be added to .gitignore, of course.
+        Searches for .env file starting from current directory and moving up
+        the directory tree until found. Should be added to .gitignore.
     """
+    if env_path is None:
+        env_path = find_env_file()
+        if env_path is None:
+            logging.warning("No .env file found in directory tree")
+            return [None] * len(key_names)
+
     load_dotenv(env_path / ".env")
     keys: List[Optional[str]] = []
     for key in key_names:
