@@ -28,6 +28,86 @@ class DataLoader:
         return [f.name for f in self.data_dir.iterdir() if f.is_file()]
 
 
+class WNBADataLoader(DataLoader):
+    """Loader for WNBA datasets."""
+
+    def __init__(self):
+        super().__init__("wnba")
+        self._available_datasets = {
+            "wnba": "wnba.csv",
+            "wnba_player_text": "wnba_player_text.csv",
+            "wnba_team_rosters_2024": "wnba_team_rosters_2024.csv",
+        }
+
+    def load(self, dataset_name: str, **kwargs) -> pd.DataFrame:
+        """
+        Load a WNBA dataset.
+
+        Args:
+            dataset_name: Name of the dataset to load. Options: 'wnba',
+                         'wnba_player_text', 'wnba_team_rosters_2024'
+            **kwargs: Additional arguments passed to pd.read_csv()
+
+        Returns:
+            pandas.DataFrame: The loaded dataset
+
+        Raises:
+            ValueError: If dataset_name is not recognized
+            FileNotFoundError: If the data file doesn't exist
+        """
+        if dataset_name not in self._available_datasets:
+            available = list(self._available_datasets.keys())
+            raise ValueError(
+                f"Unknown dataset '{dataset_name}'. Available datasets: {available}"
+            )
+
+        filename = self._available_datasets[dataset_name]
+        filepath = self.data_dir / filename
+
+        if not filepath.exists():
+            raise FileNotFoundError(f"Data file not found: {filepath}")
+
+        return pd.read_csv(filepath, **kwargs)
+
+    def about(self, dataset_name: Optional[str] = None) -> None:
+        """
+        Display information about available WNBA datasets.
+
+        Args:
+            dataset_name: If provided, show info for specific dataset.
+                         Otherwise show all.
+        """
+        print("WNBA Datasets:")
+
+        if dataset_name:
+            if dataset_name not in self._available_datasets:
+                available = list(self._available_datasets.keys())
+                raise ValueError(
+                    f"Unknown dataset '{dataset_name}'. Available datasets: {available}"
+                )
+            datasets_to_show = [dataset_name]
+        else:
+            datasets_to_show = list(self._available_datasets.keys())
+
+        for name in datasets_to_show:
+            filename = self._available_datasets[name]
+            filepath = self.data_dir / filename
+
+            if filepath.exists():
+                try:
+                    df = pd.read_csv(filepath)
+                    print(f"  {name}: {filename} (shape: {df.shape})")
+                    if hasattr(df, "columns"):
+                        cols = ", ".join(df.columns.tolist()[:5])
+                        if len(df.columns) > 5:
+                            cols += f", ... (+{len(df.columns) - 5} more)"
+                        print(f"    Columns: {cols}")
+                except Exception as e:
+                    print(f"  {name}: {filename} (could not read: {e})")
+            else:
+                print(f"  {name}: {filename} (FILE NOT FOUND)")
+
+
 class YouTubeDataLoader(DataLoader):
     """Loader for YouTube comment datasets."""
 
@@ -147,7 +227,7 @@ class YouTubeDataLoader(DataLoader):
         """Get list of available dataset names."""
         return list(self._available_datasets.keys())
 
-    def info(self, dataset_name: Optional[str] = None) -> None:
+    def about(self, dataset_name: Optional[str] = None) -> None:
         """
         Print information about available datasets.
 
@@ -223,13 +303,29 @@ class YouTubeDataLoader(DataLoader):
 
 
 # Create instances that users can import directly
+wnba = WNBADataLoader()
 youtube = YouTubeDataLoader()
 youtube_sampled = (
     YouTubeDataLoader()
 )  # For backward compatibility, though both use the same loader
 
 
-# Convenience function for direct access
+# Convenience functions for direct access
+def load_wnba_data(dataset_name: str, **kwargs) -> pd.DataFrame:
+    """
+    Convenience function to load WNBA datasets.
+
+    Args:
+        dataset_name: Name of the dataset ('wnba', 'wnba_player_text',
+                     'wnba_team_rosters_2024')
+        **kwargs: Additional arguments passed to pd.read_csv()
+
+    Returns:
+        pandas.DataFrame: The loaded dataset
+    """
+    return wnba.load(dataset_name, **kwargs)
+
+
 def load_youtube_data(dataset_name: str = "comments", **kwargs) -> pd.DataFrame:
     """
     Convenience function to load YouTube datasets.
