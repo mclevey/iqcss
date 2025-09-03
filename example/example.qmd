@@ -4,6 +4,30 @@
 import iqcss
 ```
 
+## Test Data Loaders
+
+### YouTube
+
+```{python}
+from iqcss.data import youtube
+```
+
+```{python}
+comments = youtube.load("comments")
+comments.info()
+```
+
+```{python}
+comments_sampled = youtube.load("comments_sampled")
+comments_sampled.info()
+```
+
+
+
+
+
+
+
 # From a Colab Notebook
 
 ```python
