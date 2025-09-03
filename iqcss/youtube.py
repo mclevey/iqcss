@@ -10,12 +10,28 @@ from tqdm import tqdm
 
 
 class YouTubeAPI:
+    """YouTube API client with automatic key rotation and rate limiting.
+
+    Manages multiple API keys and handles rate limiting by automatically
+    switching keys when quotas are exceeded.
+    """
+
     def __init__(self, api_keys: List[str]) -> None:
+        """Initialize YouTube API client.
+
+        Args:
+            api_keys: List of YouTube API keys for rotation.
+        """
         self.api_keys = api_keys
         self.key_index = 0
         self.service = self.build_service()
 
     def build_service(self) -> Resource:
+        """Build YouTube API service with current key.
+
+        Returns:
+            YouTube API service resource.
+        """
         return build(
             "youtube",
             "v3",
@@ -24,10 +40,22 @@ class YouTubeAPI:
         )
 
     def switch_key(self) -> None:
+        """Switch to the next API key in rotation."""
         self.key_index = (self.key_index + 1) % len(self.api_keys)
         self.service = self.build_service()
 
     def execute_request(self, request: Any) -> Any:
+        """Execute API request with retry logic and key rotation.
+
+        Args:
+            request: YouTube API request object.
+
+        Returns:
+            API response data.
+
+        Raises:
+            Exception: If max retries exceeded.
+        """
         wait_time = 1  # initial wait time in seconds
         max_retries = 5  # maximum number of retries
 
@@ -44,8 +72,7 @@ class YouTubeAPI:
                         )
                     )
                     self.switch_key()
-                    print(
-                        f"Waiting for {wait_time} seconds before retrying...")
+                    print(f"Waiting for {wait_time} seconds before retrying...")
                     time.sleep(wait_time)
                     wait_time *= 2  # Exponential backoff
                 else:
@@ -55,7 +82,15 @@ class YouTubeAPI:
 
 
 def get_channel_id_by_username(youtube_api: YouTubeAPI, username: str) -> Optional[str]:
-    """Get the channel ID by username."""
+    """Get the channel ID by username.
+
+    Args:
+        youtube_api: YouTubeAPI client instance.
+        username: YouTube username to look up.
+
+    Returns:
+        Channel ID if found, None otherwise.
+    """
     try:
         request = youtube_api.service.channels().list(part="id", forUsername=username)
         response = youtube_api.execute_request(request)
@@ -72,7 +107,15 @@ def get_channel_id_by_username(youtube_api: YouTubeAPI, username: str) -> Option
 def get_channel_id_by_custom_url(
     youtube_api: YouTubeAPI, custom_url: str
 ) -> Optional[str]:
-    """Get the channel ID by custom URL."""
+    """Get the channel ID by custom URL.
+
+    Args:
+        youtube_api: YouTubeAPI client instance.
+        custom_url: YouTube custom URL to look up.
+
+    Returns:
+        Channel ID if found, None otherwise.
+    """
     try:
         request = youtube_api.service.search().list(
             part="snippet", q=custom_url, type="channel"
@@ -89,8 +132,14 @@ def get_channel_id_by_custom_url(
 
 
 def get_channel_id(youtube_api: YouTubeAPI, channel: str) -> Optional[str]:
-    """
-    Get the channel ID given a channel name or custom URL.
+    """Get the channel ID given a channel name or custom URL.
+
+    Args:
+        youtube_api: YouTubeAPI client instance.
+        channel: Channel name or custom URL to look up.
+
+    Returns:
+        Channel ID if found, None otherwise.
     """
     # First, try to get the channel ID by custom URL
     cid = get_channel_id_by_custom_url(youtube_api, channel)
@@ -101,7 +150,16 @@ def get_channel_id(youtube_api: YouTubeAPI, channel: str) -> Optional[str]:
 
 
 def get_channel_video_ids(youtube_api: YouTubeAPI, channel_id: str) -> List[str]:
-    """Retrieve all video IDs from the channel's uploads playlist."""
+    """Retrieve all video IDs from the channel's uploads playlist.
+
+    Args:
+        youtube_api: YouTubeAPI client instance.
+        channel_id: YouTube channel ID.
+
+    Returns:
+        List of video IDs from the channel's uploads playlist.
+        Returns empty list if channel not found or has no videos.
+    """
     try:
         request = youtube_api.service.channels().list(
             part="contentDetails", id=channel_id
@@ -147,7 +205,16 @@ def get_channel_video_ids(youtube_api: YouTubeAPI, channel_id: str) -> List[str]
 def get_channel_video_data(
     youtube_api: YouTubeAPI, video_ids: List[str]
 ) -> List[Dict[str, Any]]:
-    """Retrieve detailed information for each video."""
+    """Retrieve detailed information for each video.
+
+    Args:
+        youtube_api: YouTubeAPI client instance.
+        video_ids: List of YouTube video IDs.
+
+    Returns:
+        List of dictionaries containing detailed video information including
+        snippet, content details, statistics, status, and other metadata.
+    """
     video_details: List[Dict[str, Any]] = []
     for i in range(0, len(video_ids), 50):
         try:
@@ -156,15 +223,14 @@ def get_channel_video_data(
                     "snippet,contentDetails,statistics,status,topicDetails,"
                     "recordingDetails,player,liveStreamingDetails"
                 ),
-                id=",".join(video_ids[i: i + 50]),
+                id=",".join(video_ids[i : i + 50]),
             )
             response = youtube_api.execute_request(request)
 
             for item in response.get("items", []):
                 video_details.append(item)
         except Exception as e:
-            logging.error(
-                f"An error occurred while fetching video details: {e}")
+            logging.error(f"An error occurred while fetching video details: {e}")
 
     return video_details
 
@@ -175,6 +241,17 @@ def collect_comments_for_videos(
     filename: str,
     overwrite: bool = False,
 ) -> None:
+    """Collect comments for a list of videos and save to CSV.
+
+    Args:
+        youtube_api: YouTubeAPI client instance.
+        video_ids: List of YouTube video IDs to collect comments for.
+        filename: Path to CSV file to save comments.
+        overwrite: Whether to overwrite existing file (default: False).
+
+    Returns:
+        None. Comments are written directly to CSV file.
+    """
     fieldnames = [
         "video_id",
         "comment_id",
@@ -227,7 +304,17 @@ def collect_comments_for_videos(
 def get_video_comments(
     youtube_api: YouTubeAPI, video_id: str
 ) -> Optional[List[Dict[str, Any]]]:
-    """Retrieve comments for a given video ID."""
+    """Retrieve comments for a given video ID.
+
+    Args:
+        youtube_api: YouTubeAPI client instance.
+        video_id: YouTube video ID to collect comments for.
+
+    Returns:
+        List of comment dictionaries with text, author info, timestamps,
+        and like counts. Returns None if comments are disabled or
+        an error occurs.
+    """
     try:
         request = youtube_api.service.commentThreads().list(
             part="snippet,replies", videoId=video_id, maxResults=100
@@ -280,6 +367,6 @@ def get_video_comments(
             logging.warning(f" Comments are disabled for video {video_id}")
         else:
             logging.error(
-                (" An error occurred while fetching comments for" f"{video_id}: {e}")
+                (f" An error occurred while fetching comments for{video_id}: {e}")
             )
         return None

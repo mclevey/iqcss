@@ -12,14 +12,31 @@ import numpy as np
 import pandas as pd
 from graph_tool.all import Graph, GraphView
 
-
 from iqcss.plotting import plot_line_comparison
 
+
 def save_gt(g: Graph, filename: str) -> None:
+    """Save a graph-tool Graph to file.
+
+    Args:
+        g: Graph-tool Graph object to save.
+        filename: Name of the file (without extension).
+
+    Returns:
+        None. Saves graph to '../output/{filename}.gt'.
+    """
     g.save(f"../output/{filename}.gt")
 
 
 def load_gt(filename: str) -> Graph:
+    """Load a graph-tool Graph from file.
+
+    Args:
+        filename: Name of the file (without extension).
+
+    Returns:
+        Loaded graph-tool Graph object.
+    """
     return gt.load_graph(f"../input/{filename}.gt")
 
 
@@ -29,10 +46,19 @@ def load_gt(filename: str) -> Graph:
 def construct_cooccurrence_edgelist(
     df: pd.DataFrame, node_list_col: str, context_group_col: Optional[str] = None
 ) -> pd.DataFrame:
-    """
-    Create a co-occurrence / co-mention network of nodes in node_list_col
-    Defaults to co-occurrences within the row units (e.g., videos, comments)
-    If you provide context_group_col, it will create ties within the expanded context
+    """Create a co-occurrence network edgelist from nodes in a DataFrame.
+
+    Constructs co-occurrence relationships between nodes. By default, creates
+    ties within row units (e.g., videos, comments). If context_group_col is
+    provided, creates ties within the expanded context groups.
+
+    Args:
+        df: DataFrame containing node lists.
+        node_list_col: Column name containing lists of nodes.
+        context_group_col: Optional column to group by for expanded context.
+
+    Returns:
+        DataFrame with columns 'i', 'j', 'count' representing the edgelist.
     """
     results: List[Dict[str, Any]] = []
 
@@ -75,6 +101,17 @@ def g_from_weighted_edgelist(
     node_j_col: str = "j",
     weight_col: str = "count",
 ) -> Graph:
+    """Create a graph-tool Graph from a weighted edgelist DataFrame.
+
+    Args:
+        edgelist: DataFrame containing the edgelist.
+        node_i_col: Column name for source nodes.
+        node_j_col: Column name for target nodes.
+        weight_col: Column name for edge weights.
+
+    Returns:
+        Undirected graph-tool Graph with vertex and edge properties.
+    """
     g = gt.Graph(directed=False)
 
     # add vertex and edge properties
@@ -115,6 +152,22 @@ def construct_mention_network(
     drop_isolates: bool = True,
     include_mentioned_no_comment_nodes: bool = True,
 ) -> Tuple[Graph, pd.DataFrame]:
+    """Construct a directed mention network from comment data.
+
+    Extracts @username mentions from comment text and creates a directed
+    network where edges represent mentions between users.
+
+    Args:
+        df: DataFrame containing user comments.
+        user_id_col: Column name for user identifiers.
+        comment_text_col: Column name containing comment text.
+        drop_isolates: Whether to remove isolated nodes.
+        include_mentioned_no_comment_nodes: Include mentioned users who don't
+            have comments in the dataset.
+
+    Returns:
+        Tuple of (graph, weighted_edges_dataframe).
+    """
     g = gt.Graph(directed=True)
 
     # extract all mentions
@@ -173,6 +226,23 @@ def construct_entity_network(
     typelist: Optional[List[str]] = None,
     edge_weight_threshold: int = 1,
 ) -> Tuple[GraphView, List[Tuple[str, str, int]]]:
+    """Construct an entity co-occurrence network from NER results.
+
+    Creates a network where entities are nodes and edges represent
+    co-occurrence within the same document/comment.
+
+    Args:
+        df: DataFrame with entity recognition results.
+        id_col: Column name for document/comment IDs.
+        span_col: Column name for entity spans/names.
+        score_col: Column name for entity confidence scores.
+        threshold: Minimum confidence score for entities.
+        typelist: Optional list of entity types to include.
+        edge_weight_threshold: Minimum edge weight to include.
+
+    Returns:
+        Tuple of (filtered_graph_view, weighted_edgelist).
+    """
     filtered_df = df[df[score_col] > threshold]
     if typelist is not None:
         filtered_df = filtered_df[filtered_df["label"].isin(typelist)]
@@ -245,6 +315,17 @@ def construct_entity_network(
 def create_bipartite_edgelist(
     df: pd.DataFrame, topic_col: str, entity_list_col: str, weight_counts: bool = True
 ) -> pd.DataFrame:
+    """Create a bipartite edgelist between topics and entities.
+
+    Args:
+        df: DataFrame containing topics and entity lists.
+        topic_col: Column name for topics.
+        entity_list_col: Column name containing lists of entities.
+        weight_counts: Whether to aggregate edge counts.
+
+    Returns:
+        DataFrame with bipartite edgelist, optionally with counts.
+    """
     results: List[Dict[str, Any]] = []
 
     for _, row in df.iterrows():  # vectorize later
@@ -273,6 +354,19 @@ def construct_topic_entity_network(
     weight_col: str = "Count",
     drop_isolates: bool = True,
 ) -> Tuple[Graph, pd.DataFrame]:
+    """Construct a bipartite topic-entity network from edgelist data.
+
+    Args:
+        df: DataFrame containing topic-entity bipartite edgelist.
+        topic_col: Column name for topics (default: "Topic").
+        entity_col: Column name for entities (default: "Entity").
+        weight_col: Column name for edge weights (default: "Count").
+        drop_isolates: Whether to remove isolated nodes (default: True).
+
+    Returns:
+        Tuple of (graph, weighted_edges_dataframe) where graph is a bipartite
+        graph-tool Graph with vertex type properties.
+    """
     g = gt.Graph(directed=False)
 
     # add vertex properties
@@ -351,7 +445,18 @@ def construct_topic_entity_network(
 def fit_bppm(
     g: gt.Graph, refine: str = "marginals", return_all_levels: bool = False
 ) -> Tuple[Any, Optional[pd.DataFrame]]:
-    """fit a Bayesian planted partition model for assortative community structure"""
+    """Fit a Bayesian planted partition model for assortative community
+    structure.
+
+    Args:
+        g: Graph-tool Graph object.
+        refine: Refinement method ("marginals" or other).
+        return_all_levels: Whether to return all hierarchy levels.
+
+    Returns:
+        Tuple of (state, block_data) where state is the fitted model
+        and block_data is a DataFrame with node-to-block assignments.
+    """
     state = gt.minimize_blockmodel_dl(g=g, state=gt.PPBlockState)
     if refine == "marginals":
         state = get_consensus_partition_from_posterior(state)
@@ -431,7 +536,23 @@ def fit_hbsbm(
     return_all_levels: bool = False,
     vertex_property_key: str = "vprop_name",
 ) -> Tuple[Any, Optional[pd.DataFrame]]:
-    """fit a Hierarchical Bayesian stochastic blockmodel"""
+    """Fit a Hierarchical Bayesian Stochastic Blockmodel.
+
+    Args:
+        graph: Graph-tool Graph object.
+        bip: Bipartite vertex property name.
+        eweight: Edge weight property name.
+        recs: List of record property names.
+        rec_types: List of record types.
+        covars: Whether to use covariates.
+        refine: Refinement method ("basic" or "marginals").
+        return_all_levels: Whether to return all hierarchy levels.
+        vertex_property_key: Key for vertex property map.
+
+    Returns:
+        Tuple of (state, block_data) where state is the fitted model
+        and block_data is a DataFrame with hierarchical block assignments.
+    """
     global bs
     bs = []
 
@@ -475,12 +596,33 @@ def fit_hbsbm(
 
 
 def _refine_state_multiflip_mcmc_sweep(state: Any, niter: int = 100) -> Any:
+    """Refine blockmodel state using multiflip MCMC sweeps.
+
+    Args:
+        state: Graph-tool blockmodel state.
+        niter: Number of iterations for MCMC sweeps.
+
+    Returns:
+        Refined blockmodel state.
+    """
     for i in range(niter):
         state.multiflip_mcmc_sweep(niter=niter, beta=np.inf)
     return state
 
 
-def get_consensus_partition_from_posterior(state, graph, force_niter=2000):
+def get_consensus_partition_from_posterior(
+    state: Any, graph: Graph, force_niter: int = 2000
+) -> Any:
+    """Get consensus partition from posterior distribution.
+
+    Args:
+        state: Graph-tool blockmodel state.
+        graph: Graph-tool Graph object.
+        force_niter: Number of forced iterations.
+
+    Returns:
+        Consensus partition state.
+    """
     global bs
     bs = []
 
@@ -524,6 +666,15 @@ def get_consensus_partition_from_posterior(state, graph, force_niter=2000):
 
 
 def _get_ppm_results(g: gt.Graph, block_property_map: Any) -> pd.DataFrame:
+    """Extract block assignment results from PPM model.
+
+    Args:
+        g: Graph-tool Graph object.
+        block_property_map: Block property map from fitted model.
+
+    Returns:
+        DataFrame with node names and block assignments.
+    """
     block_property_map = gt.contiguous_map(block_property_map)
     block_data = {g.vp.vprop_name[v]: block_property_map[v] for v in g.vertices()}
     block_data = pd.DataFrame(list(block_data.items()), columns=["Node", "BlockID"])
@@ -533,7 +684,16 @@ def _get_ppm_results(g: gt.Graph, block_property_map: Any) -> pd.DataFrame:
 def _get_hbsbm_results(
     state: Any, all_levels: bool = False, vertex_property_key: str = "vprop_name"
 ) -> pd.DataFrame:
-    """Get block memberships for nodes in a graph-tool state."""
+    """Get block memberships for nodes in a hierarchical blockmodel state.
+
+    Args:
+        state: Graph-tool hierarchical blockmodel state.
+        all_levels: Whether to return all hierarchy levels.
+        vertex_property_key: Key for vertex property map.
+
+    Returns:
+        DataFrame with node names and hierarchical block assignments.
+    """
     levels = state.get_levels()
     name_list: List[str] = []
     block_list: List[int] = []
@@ -559,91 +719,19 @@ def _get_hbsbm_results(
     return data_df
 
 
-def rotate_positions(pos, a):
-    """Rotate the positions by `a` degrees."""
+def rotate_positions(pos: Any, a: float) -> Any:
+    """Rotate the positions by `a` degrees.
+
+    Args:
+        pos: Position array or mapping to rotate.
+        a: Rotation angle in degrees.
+
+    Returns:
+        Rotated position array or mapping.
+    """
     theta = np.radians(a)
     c, s = np.cos(theta), np.sin(theta)
     R = np.array(((c, -s), (s, c)))
     x, y = pos.get_2d_array()
     cm = np.array([x.mean(), y.mean()])
     return pos.t(lambda x: R @ (x.a - cm) + cm)
-
-
-
-# MOVED TO PLOTTING
-# def _sort_models_dict(models_dict):
-#     sorted_models = sorted(models_dict.items(), key=lambda x: x[1])
-#     labels, values = zip(*sorted_models)
-#     return sorted_models, labels, values
-# def plot_line_comparison(
-#     models_dict,
-#     xlabel="\nMinimal Description Length (MDL)",
-#     title="Model Comparison\n",
-#     padding=10_000,
-#     xrange=None,
-#     print_decimals=False,
-#     filename=None,
-# ):
-#     """
-#     xrange: tuple of start and end for horizontal line and xaxis (e.g., 0, 1)
-#     """
-#     sorted_models, labels, values = _sort_models_dict(models_dict)
-
-#     fig, ax = plt.subplots(figsize=(10, 2.5))
-#     if xrange is not None:
-#         xstart, xend = xrange
-#     else:  # use padding
-#         xstart = min(values) - padding
-#         xend = max(values) + padding
-
-#     plt.hlines(1, xstart, xend, color="black", linestyles="solid")
-#     plt.xlim(xstart, xend)
-
-#     # alternate annotations above and below the line for readability
-#     for i, (label, value) in enumerate(sorted_models):
-#         ax.plot(value, 1, "o", label=label, c="black")
-#         if i % 2 == 0:
-#             ax.text(value, 1.02, f"{label}\n{value:,}", ha="center", va="bottom")
-#         else:
-#             ax.text(value, 0.98, f"{label}\n{value:,}", ha="center", va="top")
-
-#     plt.yticks([])
-#     plt.xlabel(xlabel)
-#     plt.title(title, loc="left", fontsize=14)
-
-#     if print_decimals is True:
-#         plt.gca().xaxis.set_major_formatter(
-#             ticker.FuncFormatter(lambda x, _: f"{round(x, 1):,}")
-#         )
-#     else:
-#         plt.gca().xaxis.set_major_formatter(
-#             ticker.FuncFormatter(lambda x, _: f"{int(x):,}")
-#         )
-
-#     if filename is not None:
-#         plt.savefig(filename, dpi=300)
-
-
-# def graph_tool_to_networkx(gt_graph):
-#     """
-#     Converts a graph-tool Graph object to a networkx Graph object.
-
-#     Parameters:
-#     gt_graph (gt.Graph): The graph-tool graph to convert.
-
-#     Returns:
-#     nx.Graph: The converted networkx graph.
-#     """
-#     nx_graph = nx.DiGraph() if gt_graph.is_directed() else nx.Graph()
-
-#     # Add nodes
-#     for v in gt_graph.vertices():
-#         nx_graph.add_node(int(v))
-
-#     # Add edges
-#     for e in gt_graph.edges():
-#         source = int(e.source())
-#         target = int(e.target())
-#         nx_graph.add_edge(source, target)
-
-#     return nx_graph

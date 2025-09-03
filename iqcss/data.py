@@ -4,10 +4,10 @@ Data loading utilities for the iqcss package.
 This module provides easy access to datasets included with the iqcss package.
 """
 
-import os
-import pandas as pd
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
+
+import pandas as pd
 
 
 def _get_data_path() -> Path:
@@ -23,7 +23,7 @@ class DataLoader:
         if not self.data_dir.exists():
             raise FileNotFoundError(f"Data directory not found: {self.data_dir}")
 
-    def list_files(self) -> list:
+    def list_files(self) -> List[str]:
         """List available data files in this directory."""
         return [f.name for f in self.data_dir.iterdir() if f.is_file()]
 
@@ -143,7 +143,7 @@ class YouTubeDataLoader(DataLoader):
 
         return full_df
 
-    def available_datasets(self) -> list:
+    def available_datasets(self) -> List[str]:
         """Get list of available dataset names."""
         return list(self._available_datasets.keys())
 

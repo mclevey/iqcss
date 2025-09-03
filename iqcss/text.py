@@ -155,7 +155,6 @@ def label_topics(
     return df, topic_info, topic_model
 
 
-
 def label_entities(
     model: Any,
     df: pd.DataFrame,
@@ -471,7 +470,25 @@ def construct_entity_topic_edgelist(
 # REFACTORING FROM DCSS
 
 
-def get_topic_word_scores(df, n_words, topic_column, all_topics=False, as_tuples=True):
+def get_topic_word_scores(
+    df: pd.DataFrame,
+    n_words: int,
+    topic_column: str,
+    all_topics: bool = False,
+    as_tuples: bool = True,
+) -> Any:
+    """Get topic word scores from DataFrame.
+
+    Args:
+        df: DataFrame containing topic word scores.
+        n_words: Number of words to return.
+        topic_column: Column name for topic scores.
+        all_topics: Whether to include all topics.
+        as_tuples: Whether to return as tuples.
+
+    Returns:
+        Topic word scores as DataFrame or tuples.
+    """
     df = df.sort_values(by=[topic_column], ascending=False)
     if all_topics is True:
         result = pd.concat([df.head(n_words), df.tail(n_words)]).round(4)
@@ -483,7 +500,17 @@ def get_topic_word_scores(df, n_words, topic_column, all_topics=False, as_tuples
     return result
 
 
-def sparse_groupby(groups, sparse_m, vocabulary):
+def sparse_groupby(groups: Any, sparse_m: Any, vocabulary: Any) -> pd.DataFrame:
+    """Group sparse matrix by categories.
+
+    Args:
+        groups: Group categories.
+        sparse_m: Sparse matrix to group.
+        vocabulary: Vocabulary for columns.
+
+    Returns:
+        Grouped sparse DataFrame.
+    """
     grouper = LabelBinarizer(sparse_output=True)
     grouped_m = grouper.fit_transform(groups).T.dot(sparse_m)
 
@@ -495,8 +522,26 @@ def sparse_groupby(groups, sparse_m, vocabulary):
 
 
 def bigram_process(
-    texts, nlp=None, threshold=0.75, scoring="npmi", detokenize=True, n_process=1
-):
+    texts: Any,
+    nlp: Optional[Any] = None,
+    threshold: float = 0.75,
+    scoring: str = "npmi",
+    detokenize: bool = True,
+    n_process: int = 1,
+) -> Tuple[Any, Any]:
+    """Process texts to identify and apply bigrams.
+
+    Args:
+        texts: Input texts to process.
+        nlp: SpaCy language model.
+        threshold: Threshold for phrase detection.
+        scoring: Scoring method for phrases.
+        detokenize: Whether to detokenize output.
+        n_process: Number of processes for parallel processing.
+
+    Returns:
+        Tuple of (phrase_model, processed_texts).
+    """
     if nlp is None:
         nlp = spacy.load("en_core_web_sm")
 
@@ -538,8 +583,26 @@ def bigram_process(
 
 
 def preprocess(
-    texts, nlp=None, bigrams=False, detokenize=True, n_process=1, custom_stops=[]
-):
+    texts: Any,
+    nlp: Optional[Any] = None,
+    bigrams: bool = False,
+    detokenize: bool = True,
+    n_process: int = 1,
+    custom_stops: List[str] = [],
+) -> Any:
+    """Preprocess texts with tokenization, lemmatization, and filtering.
+
+    Args:
+        texts: Input texts to preprocess.
+        nlp: SpaCy language model.
+        bigrams: Whether to apply bigram processing.
+        detokenize: Whether to detokenize output.
+        n_process: Number of processes for parallel processing.
+        custom_stops: Additional stop words.
+
+    Returns:
+        Preprocessed texts, optionally with bigram model.
+    """
     if nlp is None:
         nlp = spacy.load("en_core_web_sm")
 
@@ -572,7 +635,20 @@ def preprocess(
         return processed_list
 
 
-def plot_topic_distribution(topic_distr, topic_model, doc_index, filename=None):
+def plot_topic_distribution(
+    topic_distr: Any, topic_model: Any, doc_index: int, filename: Optional[str] = None
+) -> None:
+    """Plot topic probability distribution for a document.
+
+    Args:
+        topic_distr: Topic distribution data.
+        topic_model: Trained topic model.
+        doc_index: Document index to plot.
+        filename: Optional filename to save plot.
+
+    Returns:
+        None. Displays plot and optionally saves to file.
+    """
     """
     Plots the topic probability distribution for a single document.
 
