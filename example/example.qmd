@@ -2,12 +2,13 @@
 
 ```{python}
 import iqcss
+import graph_tool as gt
 ```
 
 # Test Data Loaders
 
 ```{python}
-from iqcss.data import wnba, youtube
+from iqcss.data import wnba, youtube, enron
 ```
 
 ## WNBA
@@ -23,4 +24,10 @@ wnba_team_rosters = wnba.load('wnba_team_rosters_2024')
 ```{python}
 comments = youtube.load("comments")
 comments_sampled = youtube.load("comments_sampled")
+```
+
+## Enron
+
+```{python}
+g = enron.load()
 ```

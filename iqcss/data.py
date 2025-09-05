@@ -9,6 +9,13 @@ from typing import List, Optional
 
 import pandas as pd
 
+try:
+    import graph_tool as gt
+
+    GRAPH_TOOL_AVAILABLE = True
+except ImportError:
+    GRAPH_TOOL_AVAILABLE = False
+
 
 def _get_data_path() -> Path:
     """Get the path to the data directory within the iqcss package."""
@@ -307,9 +314,101 @@ class YouTubeDataLoader(DataLoader):
                         print(f"  {name}: {filename_or_dir} (FILE NOT FOUND)")
 
 
+class EnronDataLoader(DataLoader):
+    """Loader for Enron network dataset."""
+
+    def __init__(self):
+        super().__init__("enron")
+        self._available_datasets = {
+            "graph": "enron_graph.gt",
+        }
+
+    def load(self, dataset_name: str = "graph", **kwargs):
+        """
+        Load the Enron network dataset.
+
+        Args:
+            dataset_name: Name of the dataset to load. Currently only 'graph'
+                         is supported (default).
+            **kwargs: Additional arguments (currently unused but maintained
+                     for consistency)
+
+        Returns:
+            graph_tool.Graph: The loaded network as a graph-tool Graph object
+
+        Raises:
+            ImportError: If graph-tool is not installed
+            ValueError: If dataset_name is not recognized
+            FileNotFoundError: If the data file doesn't exist
+        """
+        if not GRAPH_TOOL_AVAILABLE:
+            raise ImportError(
+                "graph-tool is required to load Enron network data. "
+                "Please install graph-tool to use this functionality."
+            )
+
+        if dataset_name not in self._available_datasets:
+            available = list(self._available_datasets.keys())
+            raise ValueError(
+                f"Unknown dataset '{dataset_name}'. Available: {available}"
+            )
+
+        filename = self._available_datasets[dataset_name]
+        filepath = self.data_dir / filename
+
+        if not filepath.exists():
+            raise FileNotFoundError(f"Data file not found: {filepath}")
+
+        # Load the graph using graph-tool
+        graph = gt.load_graph(str(filepath))
+        return graph
+
+    def about(self, dataset_name: Optional[str] = None) -> None:
+        """
+        Display information about available Enron datasets.
+
+        Args:
+            dataset_name: If provided, show info for specific dataset.
+                         Otherwise show all.
+        """
+        print("Enron Datasets:")
+
+        if dataset_name:
+            if dataset_name not in self._available_datasets:
+                available = list(self._available_datasets.keys())
+                raise ValueError(
+                    f"Unknown dataset '{dataset_name}'. Available: {available}"
+                )
+            datasets_to_show = [dataset_name]
+        else:
+            datasets_to_show = list(self._available_datasets.keys())
+
+        for name in datasets_to_show:
+            filename = self._available_datasets[name]
+            filepath = self.data_dir / filename
+
+            if filepath.exists():
+                if GRAPH_TOOL_AVAILABLE:
+                    try:
+                        graph = gt.load_graph(str(filepath))
+                        num_vertices = graph.num_vertices()
+                        num_edges = graph.num_edges()
+                        print(f"  {name}: {filename}")
+                        print(f"    Vertices: {num_vertices}")
+                        print(f"    Edges: {num_edges}")
+                        print(f"    Directed: {graph.is_directed()}")
+                    except Exception as e:
+                        print(f"  {name}: {filename} (could not read: {e})")
+                else:
+                    print(f"  {name}: {filename} (graph-tool not available)")
+            else:
+                print(f"  {name}: {filename} (FILE NOT FOUND)")
+
+
 # Create instances that users can import directly
 wnba = WNBADataLoader()
 youtube = YouTubeDataLoader()
+enron = EnronDataLoader()
 youtube_sampled = (
     YouTubeDataLoader()
 )  # For backward compatibility, though both use the same loader
@@ -343,3 +442,20 @@ def load_youtube_data(dataset_name: str = "comments", **kwargs) -> pd.DataFrame:
         pandas.DataFrame: The loaded dataset
     """
     return youtube.load(dataset_name, **kwargs)
+
+
+def load_enron_data(dataset_name: str = "graph", **kwargs):
+    """
+    Convenience function to load Enron network datasets.
+
+    Args:
+        dataset_name: Name of the dataset ('graph')
+        **kwargs: Additional arguments (currently unused)
+
+    Returns:
+        graph_tool.Graph: The loaded network as a graph-tool Graph object
+
+    Raises:
+        ImportError: If graph-tool is not installed
+    """
+    return enron.load(dataset_name, **kwargs)
